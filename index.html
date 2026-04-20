@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bachelor of Science in Information Technology</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #e8fdf5;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    h1, h2 { color: #2c7a7b; }
+    .container {
+      background: white;
+      max-width: 600px;
+      margin: auto;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0px 4px 15px rgba(0,0,0,0.1);
+    }
+    select, input {
+      padding: 10px;
+      width: 90%;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #38b2ac;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover { background-color: #2c7a7b; }
+    .hidden { display: none; }
+    .admin-container {
+      max-width: 95%;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+    th { background-color: #2c7a7b; color: white; }
+    tr:nth-child(even) { background-color: #f2f2f2; }
+    .status-present { color: green; font-weight: bold; }
+    .status-late { color: orange; font-weight: bold; }
+    #popup {
+      display: none;
+      position: fixed;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border: 2px solid #2c7a7b;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
+    /* Style for the search bar container */
+    .search-box {
+      margin-top: 15px;
+      background: #f0fdfa;
+      padding: 10px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loginPage" class="container">
+    <h1>BSIT ATTENDANCE</h1>
+    <label>Select Date:</label><br>
+    <input type="date" id="dateInput">
+    <br><br>
+    <button onclick="goToAttendance()">Student Login</button>
+    <button onclick="goToAdmin()">Admin Login</button>
+  </div>
+
+  <div id="studentPage" class="hidden container">
+    <h2>Student Time-In</h2>
+    <p>Current Date: <strong id="currentDateDisplay"></strong></p>
+    
+    <label>Select Section:</label>
+    <select id="sectionSelect" onchange="updateStudentList()"></select>
+    
+    <label>Select Name:</label>
+    <select id="studentSelect"></select>
+    
+    <br>
+    <button onclick="timeIn()">Time In</button>
+    <button onclick="backToLogin()">Back</button>
+  </div>
+
+  <div id="adminPage" class="hidden admin-container">
+    <h2>ATTENDANCE TRANSPARENCY</h2>
+    
+    <div style="display: flex; justify-content: space-around; background: #f0fdfa; padding: 15px; border-radius: 8px;">
+      <div>
+        <label>View History by Date:</label><br>
+        <input type="date" id="adminDateFilter" onchange="renderAdminTable()">
+      </div>
+      <div>
+        <label>Filter by Section:</label><br>
+        <select id="adminSectionFilter" onchange="renderAdminTable()">
+          <option value="ALL">All Sections</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="search-box">
+      <label>Search Student Name:</label><br>
+      <input type="text" id="adminSearch" placeholder="Type name to search..." oninput="renderAdminTable()">
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Student Name</th>
+          <th>Section</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="logBody"></tbody>
+    </table>
+    
+    <br>
+    <button onclick="backToLogin()">Back to Menu</button>
+  </div>
+
+  <div id="popup">
+    <p id="popupMessage"></p>
+    <button onclick="closePopup()">OK</button>
+  </div>
+
+  <script>
+    
+    const studentData = {
+      "BSIT-1A": ["Angcona, Rodel","Alojado, Karylle","Arca, Hermie Jude","Bobida, Adhara","Delos Santos, John Sedric",		"Elardo, Crystel Mae","Emperado, Aldred",	"Encarnacion, Jylca","Estimada, Chrisia Marie","Ison, John Kent","Juanites, Edjie","Magong, Janine","Matti, Joylyn",	"Mondejar, Julie Faith","Norilla, Lance Ruzzel","Panugaling, Eny","Perena, Krisha Mae","Perez, Louie J","Perocho, John Miguel","Romero, Kimberly","Valence, Julian Ross","Valiende, John Dominic","Villanueva, Aleia Juliette"],
+      "BSIT-1B": ["Bajamonde, Kristel Mae","Bartolome, Shanly","Casilagan, Lorence","Chan, Harry","Craso, Joy","Demafelis, Cj","Demillo, Julie Ann","Diso-Acido, Jeffrey Jr.","Esparagoza, Remelyn","Estanol, Romel","Esteban, Renalyn",
+       "Flores, Bea Kristel","Jara, Brylle Justine","Madrigal, Rochelle","Marquez, Adeline","Naig, John Carl","Navarro, Angel Grace","Ogatis, Renalyn","Ramoran, Jan Keith Vrian","Ruales, Jeremy","Sagang, Rj","Servino, Azrhyla Mae","Sueta, John Lloyd","Sumagaysay, Jobelle"],
+      "BSIT-1C": ["Baldeo, Ric Vince","Barcoma, April Jun","Bargaso, Cristina","Belano,Jerryl Bryan","Burdado, Cristine Joy","Carcueva, Genevieve","Daquila, Charlyn","Dionisio, Rich Novielle","Epanto, Jayloyd","Estimar, Rhean Jane","Estobo, Erlyn Mae","Francisco, Rubilyn","Gonzales, Honey Grace","Ibanez, Deseree","Olvido, Andrea Cris Mae","Ontales, Jaelie","Paguntalan, Janna","Romano, Jessa","Romano, John","Salas, John Gabriel","Samsona, Cristy Anna","Sentillas, Geny Ann","Seran, Justine","Villanueva, Ellzeves","Villarin, Randelyn"			
+],
+      "BSIT-2A": ["Aguirre, Renze","Albaracin, Khyla","Alegria, Ronamie","Allon, Remark", "Arroyo, Johnjay","Balugo, Cecil","Barcoma, Elyzah, Pearl","Bargaso, Betty","Bayking, Kassandra Nicole","Biaras, Grace Joy","Buenafe, Jason","Cordova, Christine","Daclan, Inri","De Jesus, Veecemark Jose","Demafelis, Reniel","Elgario, Joannah, Marie","Esteban, Jero","Fernandez, Kate","Gatila, Cris John", "Gavito,Heart Janine","Jawod, John Therence","Lagahit, Krishamin", "Magbanua, Edmar","Maque, Roman", "Maque, Romel","Mirano,Jaazeniah","Paguntalan, Samlee", "Quilino, Rizalito","Rezaba, Dave", "Ruste, James","Siason, Jamila","Sillador, Denmark","Tequillo, Adrian"],
+      "BSIT-2B": ["Agravante, Ma. Trisha","Bahi-an, Lena","Bahilot, Nera","Banatasa, Mark Angelou","Barrocum, Luke Axel","Basa, Kristine Joy","Bullag, Rogen","Cabrillos, Martina","Caramihan, Gene Mae","Casilangan, Rechelle An","Cepeda, Rodel","Coriento, Jeffrey","Dagumboy, Jeca","Dela Cruz, Shannon Gale","De La Llave, Lenerose","Erosido, Jisa","Espinosa, Anthony","Espinosa, Kenneth","Hilardino, Jessa","Lanojan, Sheilla Marie","Malba, Paul John","Marfil, Ajhann Aylle","Nebres, Mario Jr.","Ogatis, Jerrian Pearl","Plaza, Kevin James","Pojas, Nataniel","Pracio, Roxan","Rebosquillo, Mariel","Rivera, Jomarc Dave","Semillano, Jocelyn","Seran, Gabby","Vidal, Archie","Villaflor, Karen"],
+      "BSIT-3A": ["Abria, Justine","Aguilar, Allen","Alba, Katlyn","Alcedo, Jomainah Mae","Allon, Dave","Arnaiz, Julie Ann","Aspacio, Lovely","Asuncion, Nene","Barrieta, Aubrey","Bentic, Joshua Jay","Cabiling, John Lloyd","Casio, Lovely","Catague, Freddie Rick","Cescar, Analyn","Dollente, Daniel","Estanol, Catherine Joy","Estimar, Juvy","Estobo, Edilbert","Labiga, Twengky","Mahusay, Arianna","Mingao, Clarissa","Naig, Cris John","Paguntalan, Curt Laurence","Paulmitan, Paul Joseph","Prado, Julian","Rabor, Sherel","Sayco, Fritz","Seballos, Adrian","Servano, Donna Mae","Solinap, Eric John","Soto, Arnan Paul","Teves, Cleve Juvall","Tingson Mark Laurence","Valencia, Ray Niel John","Villanueva, Ryan"],
+      "BSIT-3B": ["Agag, Christian Jassam","Bartolome, Joshua","Bullag, Hanna Mae","Campanas, Angel Mae","Cerillo, Arron John","Ducado, John Robert","Duenas, Jerrycho","Esanan, Jouielyn","Espanola, Lovel","Estacion, Jason","Estanol, Rey","Facultad, Thara Kate","Gatila, Lovely Angel","Herrera, Akeem","Jico, Joshua","Landiza, Ma. Jamela","Liaga, Maria","Lopez, April Mie","Lopez, Cj","Magbanua, Ena Mae","Mission, Lhennie Rose","Montaiz, Justine","Namata, Vanessa","Occena, Andrea Jean","Pacorales, Rojean","Pendon, Lizarah Jane","Roto, April Ann","Sadio, Anna Mae","Seva, John Paul ","Soto, Acel","Tablanza, Queen Ann","Valencia, Ray Ann","Vergara, Pinky","Villarin, Dyna"]
+    };
+
+    let masterDatabase = {}; 
+
+    document.getElementById("dateInput").valueAsDate = new Date();
+
+    function populateSections() {
+      const sectionKeys = Object.keys(studentData).sort(); 
+      const studentSec = document.getElementById("sectionSelect");
+      const adminSec = document.getElementById("adminSectionFilter");
+
+      studentSec.innerHTML = "";
+      adminSec.innerHTML = '<option value="ALL">All Sections</option>';
+
+      sectionKeys.forEach(sec => {
+        studentSec.add(new Option(sec, sec));
+        adminSec.add(new Option(sec, sec));
+      });
+    }
+
+    function updateStudentList() {
+      const section = document.getElementById("sectionSelect").value;
+      const studentSelect = document.getElementById("studentSelect");
+      studentSelect.innerHTML = "";
+
+      const sortedNames = [...studentData[section]].sort();
+
+      sortedNames.forEach(name => {
+        studentSelect.add(new Option(name, name));
+      });
+    }
+
+    function goToAttendance() {
+      document.getElementById("loginPage").classList.add("hidden");
+      document.getElementById("studentPage").classList.remove("hidden");
+      document.getElementById("currentDateDisplay").innerText = document.getElementById("dateInput").value;
+      populateSections();
+      updateStudentList();
+    }
+
+    function goToAdmin() {
+      document.getElementById("loginPage").classList.add("hidden");
+      document.getElementById("adminPage").classList.remove("hidden");
+      document.getElementById("adminDateFilter").value = document.getElementById("dateInput").value;
+      document.getElementById("adminSearch").value = ""; 
+      populateSections();
+      renderAdminTable();
+    }
+
+    function backToLogin() {
+      document.getElementById("studentPage").classList.add("hidden");
+      document.getElementById("adminPage").classList.add("hidden");
+      document.getElementById("loginPage").classList.remove("hidden");
+    }
+
+    function timeIn() {
+      const selectedDate = document.getElementById("dateInput").value;
+      const section = document.getElementById("sectionSelect").value;
+      const name = document.getElementById("studentSelect").value;
+
+      if (!masterDatabase[selectedDate]) masterDatabase[selectedDate] = [];
+
+      if (masterDatabase[selectedDate].some(r => r.name === name)) {
+        showPopup(`Error: ${name} has already timed in for this date.`);
+        return;
+      }
+
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      let status = (now.getHours() < 8 || (now.getHours() === 8 && now.getMinutes() <= 15)) ? "Present" : "Late";
+
+      masterDatabase[selectedDate].push({
+        time: timeStr,
+        name: name,
+        section: section,
+        status: status
+      });
+
+      showPopup(`Success! Record saved for ${name}.`);
+    }
+
+    function renderAdminTable() {
+      const filterDate = document.getElementById("adminDateFilter").value;
+      const filterSec = document.getElementById("adminSectionFilter").value;
+      const searchText = document.getElementById("adminSearch").value.toLowerCase();
+      const logBody = document.getElementById("logBody");
+      logBody.innerHTML = "";
+
+      let records = masterDatabase[filterDate] || [];
+
+      // Filter by section and search text
+      let filteredRecords = records.filter(r => {
+        const matchesSection = (filterSec === "ALL" || r.section === filterSec);
+        const matchesSearch = r.name.toLowerCase().includes(searchText);
+        return matchesSection && matchesSearch;
+      });
+
+      filteredRecords.sort((a, b) => a.name.localeCompare(b.name));
+
+      if (filteredRecords.length === 0) {
+        logBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No matching records available.</td></tr>`;
+        return;
+      }
+
+      filteredRecords.forEach(record => {
+        const row = logBody.insertRow();
+        row.innerHTML = `
+          <td>${record.time}</td>
+          <td>${record.name}</td>
+          <td>${record.section}</td>
+          <td class="${record.status === 'Present' ? 'status-present' : 'status-late'}">${record.status}</td>
+        `;
+      });
+    }
+
+    function showPopup(msg) {
+      document.getElementById("popupMessage").innerText = msg;
+      document.getElementById("popup").style.display = "block";
+    }
+
+    function closePopup() { document.getElementById("popup").style.display = "none"; }
+  </script>
+</body>
+</html>
